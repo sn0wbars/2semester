@@ -1,0 +1,263 @@
+     1                                  extern GetStdHandle
+     2                                  extern WriteConsoleA
+     3                                  extern ExitProcess
+     4                                  extern MessageBoxA
+     5                                  extern ReadConsoleA
+     6                                  
+     7                                  section .code write use64 
+     8                                  STD_INPUT_HANDLE equ -10
+     9                                  STD_OUTPUT_HANDLE equ -11 
+    10                                  NUM_OF_DIGITS equ 100
+    11                                  NUM_OF_SYMBOLS equ (NUM_OF_DIGITS + 2) 
+    12                                  
+    13                                  start:	
+    14 00000000 E858010000              			call checkHash
+    15 00000005 8A0425[B5000000]        			mov byte al, [isOK]
+    16 0000000C 84C0                    			test al, al
+    17 0000000E 0F8513020000            			jnz end
+    18 00000014 41B841000000            			mov r8, GreetMessage.len
+    19 0000001A 48BA-                   			mov rdx, GreetMessage
+    19 0000001C [0000000000000000] 
+    20 00000024 E811000000              			call EasyWrite
+    21                                  			
+    22 00000029 48BA-                   			mov rdx, Loginbuffer
+    22 0000002B [CE00000000000000] 
+    23 00000033 E828000000              			call EasyRead
+    24                                  			
+    25 00000038 EB58                    			jmp login_check
+    26                                  
+    27                                  ;-----------EasyWrite-----------------------------------------------------;
+    28                                  ;  entry: r8 -  num of printing symbols									  ;
+    29                                  ;		  rdx - adress of begin								      		  ;
+    30                                  ;  destr: 						    									  ;
+    31                                  ;  exit: 									 							  ;
+    32                                  ;-------------------------------------------------------------------------;
+    33 0000003A 55                      EasyWrite:			push rbp
+    34 0000003B 4889E5                  					mov rbp, rsp
+    35                                  
+    36 0000003E 48C7C1F5FFFFFF          					mov rcx, STD_OUTPUT_HANDLE
+    37 00000045 FF1425[00000000]        					call [GetStdHandle]
+    38                                  									
+    39 0000004C 4889C1                  					mov rcx, rax
+    40 0000004F 4D31C9                  					xor r9, r9
+    41 00000052 4151                    					push r9
+    42 00000054 FF1425[00000000]        					call [WriteConsoleA]
+    43                                  
+    44 0000005B 4889EC                  					mov rsp, rbp; leave
+    45 0000005E 5D                      					pop rbp
+    46 0000005F C3                      					ret
+    47                                  
+    48                                  ;-----------EasyRead------------------------------------------------------;
+    49                                  ;  entry: rdx(2) - adress of buffer										  ;
+    50                                  ;  destr: rdi, rax						    					 	      ;
+    51                                  ;  exit: 									 							  ;
+    52                                  ;-------------------------------------------------------------------------;
+    53                                  
+    54                                  EasyRead:			
+    55 00000060 55                      					push rbp
+    56 00000061 4889E5                  					mov rbp, rsp
+    57 00000064 48C7C1F6FFFFFF          					mov rcx, STD_INPUT_HANDLE 
+    58 0000006B FF1425[00000000]        					call [GetStdHandle]
+    59                                  					
+    60 00000072 4889C1                  					mov rcx, rax;(1)
+    61 00000075 41B866000000            					mov r8, NUM_OF_SYMBOLS; (3)
+    62 0000007B 49B9-                   					mov r9, numofread; (4) 
+    62 0000007D [B600000000000000] 
+    63 00000085 4831C0                  					xor rax, rax
+    64 00000088 50                      					push rax
+    65 00000089 FF1425[00000000]        					call [ReadConsoleA]
+    66                                  					
+    67 00000090 C9                      					leave
+    68 00000091 C3                      					ret
+    69                                  					
+    70                                  login_check:		
+    71 00000092 4831C0                  					xor rax, rax
+    72 00000095 4831D2                  					xor rdx, rdx
+    73 00000098 B97C000000              					mov rcx, TotallyNotPsword.len
+    74 0000009D 49BA-                   					mov R10, Loginbuffer
+    74 0000009F [CE00000000000000] 
+    75 000000A7 49BB-                   					mov R11, Error1
+    75 000000A9 [AE01000000000000] 
+    76 000000B1 B03A                    					mov al, ':'
+    77 000000B3 48BF-                   					mov rdi, TotallyNotPsword	
+    77 000000B5 [3201000000000000] 
+    78 000000BD FC                      					cld
+    79 000000BE F2AE                    					repne scasb
+    80                                  NextCheck:			
+    81 000000C0 8A17                    					mov dl, [rdi]
+    82 000000C2 48FFC7                  					inc rdi
+    83 000000C5 28C2                    					sub dl, al
+    84 000000C7 84D2                    					test dl, dl
+    85 000000C9 0F84E8000000            					jz return
+    86 000000CF 66C1E208                					shl dx, 8
+    87 000000D3 66C1EA08                					shr dx, 8
+    88 000000D7 8A92[AE010000]          					mov dl, [Error1 + rdx]
+    89 000000DD 413A12                  					cmp dl, [R10]
+    90 000000E0 7505                    					jne wrongLogin
+    91 000000E2 49FFC2                  					inc R10
+    92 000000E5 EBD9                    					jmp NextCheck
+    93                                  
+    94                                  wrongLogin:	
+    95 000000E7 41B83E000000            			mov r8, Error1.len
+    96 000000ED 48BA-                   			mov rdx, Error1
+    96 000000EF [AE01000000000000] 
+    97 000000F7 E83EFFFFFF              			call EasyWrite
+    98                                  			
+    99 000000FC 48BA-                   			mov rdx, Answer
+    99 000000FE [B200000000000000] 
+   100 00000106 E855FFFFFF              			call EasyRead
+   101                                  			
+   102 0000010B 8A0425[B2000000]        			mov al, [Answer]
+   103 00000112 3C59                    			cmp al, 'Y'
+   104 00000114 0F84E6FEFFFF            			je start
+   105 0000011A 3C4E                    			cmp al, 'N'
+   106 0000011C 0F8405010000            			je end
+   107 00000122 EBC3                    			jmp wrongLogin
+   108                                  			
+   109                                  wrongPassword:
+   110 00000124 41B82C000000            			mov r8, Error2.len
+   111 0000012A 48BA-                   			mov rdx, Error2
+   111 0000012C [EC01000000000000] 
+   112 00000134 E801FFFFFF              			call EasyWrite
+   113                                  			
+   114 00000139 48BA-                   			mov rdx, Answer
+   114 0000013B [B200000000000000] 
+   115 00000143 E818FFFFFF              			call EasyRead
+   116                                  			
+   117 00000148 8A0425[B2000000]        			mov al, [Answer]
+   118 0000014F 3C59                    			cmp al, 'Y'
+   119 00000151 7474                    			je password_check
+   120 00000153 3C4E                    			cmp al, 'N'
+   121 00000155 0F84CC000000            			je end
+   122 0000015B EBC7                    			jmp wrongPassword
+   123                                  			
+   124                                  checkHash:
+   125                                  			;cld	
+   126 0000015D 48B8-                   			mov rax, start
+   126 0000015F [0000000000000000] 
+   127 00000167 4889C1                  			mov rcx, rax
+   128 0000016A 4831D2                  			xor rdx, rdx
+   129                                  next:		
+   130 0000016D 8A11                    			mov dl, [rcx]
+   131 0000016F 4831D0                  			xor rax, rdx 			
+   132 00000172 48D1C0                  			rol rax, 1
+   133 00000175 48FFC1                  			inc rcx
+   134 00000178 4881F9[27020000]        			cmp rcx, end
+   135 0000017F 72EC                    			jb next
+   136 00000181 48890425[C6000000]      			mov [hash2], rax
+   137 00000189 483B0425[BE000000]      			cmp rax, [hash]
+   138 00000191 7501                    			jne error 
+   139 00000193 C3                      			ret
+   140 00000194 C60425[B5000000]0D      error:		mov byte [isOK], 13
+   141                                  message:
+   142 0000019C 4831C9                  			xor rcx, rcx
+   143 0000019F 48BA-                    			mov rdx, Msg
+   143 000001A1 [5402000000000000] 
+   144 000001A9 4D31C0                  			xor r8,r8
+   145 000001AC 4D31C9                  			xor r9,r9
+   146 000001AF FF1425[00000000]        			call [MessageBoxA]
+   147 000001B6 C3                      			ret
+   148                                  
+   149                                  return:	
+   150 000001B7 E8A1FFFFFF              			call checkHash
+   151 000001BC 8A0425[B5000000]        			mov byte al, [isOK]
+   152 000001C3 84C0                    			test al, al
+   153 000001C5 7560                    			jnz end
+   154                                  			
+   155                                  password_check:			
+   156 000001C7 41B80A000000            			mov r8, Password.len
+   157 000001CD 48BA-                   			mov rdx, Password
+   157 000001CF [4100000000000000] 
+   158 000001D7 E85EFEFFFF              			call EasyWrite
+   159                                  			
+   160 000001DC 48BA-                   			mov rdx, Passwordbuffer
+   160 000001DE [4B00000000000000] 
+   161 000001E6 E875FEFFFF              			call EasyRead			
+   162                                  			
+   163 000001EB 488B0425[BE000000]      			mov rax, [hash]
+   164 000001F3 48F7D0                  			not rax
+   165 000001F6 4C8B0C25[4B000000]      			mov r9, [Passwordbuffer]	
+   166 000001FE 4939C1                  			cmp r9, rax
+   167 00000201 0F851DFFFFFF            			jne wrongPassword
+   168 00000207 8A0425[B5000000]        			mov byte al, [isOK]
+   169 0000020E 84C0                    			test al, al
+   170 00000210 7515                    			jnz end
+   171 00000212 41B818000000            			mov r8, AccessReserved.len
+   172 00000218 48BA-                   			mov rdx, AccessReserved
+   172 0000021A [5C02000000000000] 
+   173 00000222 E813FEFFFF              			call EasyWrite
+   174                                  			
+   175 00000227 FC                      end:		cld
+   176 00000228 4831C9                  			xor rcx, rcx
+   177 0000022B FF1425[00000000]        			call [ExitProcess]
+   178                                  
+   179                                  section .data
+   180                                  
+   181 00000000 4772656574696E6773-     GreetMessage db 'Greetings!', 0dh, 0ah, '@Username, enter your login and password plz', 0dh, 0ah, 'Login:',  0
+   181 00000009 210D0A40557365726E-
+   181 00000012 616D652C20656E7465-
+   181 0000001B 7220796F7572206C6F-
+   181 00000024 67696E20616E642070-
+   181 0000002D 617373776F72642070-
+   181 00000036 6C7A0D0A4C6F67696E-
+   181 0000003F 3A00               
+   182                                  GreetMessage.len equ $ - GreetMessage
+   183 00000041 50617373776F72643A-     Password db 'Password:', 0
+   183 0000004A 00                 
+   184                                  Password.len equ $ - Password 
+   185                                  
+   186 0000004B <res 00000067>          Passwordbuffer resb (NUM_OF_SYMBOLS + 1); +1
+   186          ******************       warning: uninitialised space declared in non-BSS section `.data': zeroing
+   187 000000B2 <res 00000003>          Answer resb 3
+   187          ******************       warning: uninitialised space declared in non-BSS section `.data': zeroing
+   188 000000B5 00                      isOK db 0
+   189 000000B6 <res 00000008>          numofread resq 1
+   189          ******************       warning: uninitialised space declared in non-BSS section `.data': zeroing
+   190 000000BE 03A64DB8991019D9        hash dq 0D9191099B84DA603h
+   191 000000C6 <res 00000008>          hash2 resq 1
+   191          ******************       warning: uninitialised space declared in non-BSS section `.data': zeroing
+   192 000000CE <res 00000064>          Loginbuffer resb (NUM_OF_SYMBOLS - 2); +1
+   192          ******************       warning: uninitialised space declared in non-BSS section `.data': zeroing
+   193 00000132 4E464A4C646A73646A-     TotallyNotPsword db 'NFJLdjsdjfhhfqzFJnaYwjgYAUpyX9T15LiVmQIUSZmfIp4A85RJuIomALfrvScvBIygD0JoIlt:;Ocno:8ge4oQvwNjHy3oXz0wU5eKet0ZCbklmhhiwoi1113', 0
+   193 0000013B 66686866717A464A6E-
+   193 00000144 6159776A6759415570-
+   193 0000014D 7958395431354C6956-
+   193 00000156 6D514955535A6D6649-
+   193 0000015F 7034413835524A7549-
+   193 00000168 6F6D414C6672765363-
+   193 00000171 764249796744304A6F-
+   193 0000017A 496C743A3B4F636E6F-
+   193 00000183 3A386765346F517677-
+   193 0000018C 4E6A4879336F587A30-
+   193 00000195 775535654B6574305A-
+   193 0000019E 43626B6C6D68686977-
+   193 000001A7 6F693131313300     
+   194                                  TotallyNotPsword.len equ $ - TotallyNotPsword
+   195 000001AE 4661696C21204E6F20-     Error1 db 'Fail! No such login! Do you try to trick me? Try again?(Y/N)', 0dh, 0ah
+   195 000001B7 73756368206C6F6769-
+   195 000001C0 6E2120446F20796F75-
+   195 000001C9 2074727920746F2074-
+   195 000001D2 7269636B206D653F20-
+   195 000001DB 54727920616761696E-
+   195 000001E4 3F28592F4E290D0A   
+   196                                  Error1.len equ $ - Error1
+   197 000001EC 47616D65206F766572-     Error2 db 'Game over! Wrong Password. Try again?(Y/N)', 0dh, 0ah
+   197 000001F5 212057726F6E672050-
+   197 000001FE 617373776F72642E20-
+   197 00000207 54727920616761696E-
+   197 00000210 3F28592F4E290D0A   
+   198                                  Error2.len equ $ - Error2
+   199 00000218 5768656E206C696665-     Smthing db 'When life gives you lemons, make lemonade', 0
+   199 00000221 20676976657320796F-
+   199 0000022A 75206C656D6F6E732C-
+   199 00000233 206D616B65206C656D-
+   199 0000023C 6F6E61646500       
+   200 00000242 54727920616761696E-     TryAgain db 'Try again?(Y/N)', 0dh, 0ah, '>'
+   200 0000024B 3F28592F4E290D0A3E 
+   201                                  TryAgain.len equ $ - TryAgain
+   202 00000254 4572726F720D0A00        Msg db "Error", 0dh, 0ah, 0
+   203                                  Msg.len equ $ - Msg
+   204 0000025C 416363657373206772-     AccessReserved db 'Access granted. You won!'
+   204 00000265 616E7465642E20596F-
+   204 0000026E 7520776F6E21       
+   205                                  AccessReserved.len equ $ - AccessReserved

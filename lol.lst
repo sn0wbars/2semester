@@ -1,0 +1,59 @@
+     1                                  ; roots.asm
+     2                                  segment .text
+     3                                  global  _roots
+     4                                  
+     5                                  _roots:
+     6 00000000 C8000000                        enter   0,0
+     7 00000004 31C0                            xor     EAX,EAX
+     8 00000006 DD4508                          fld     qword[EBP+8]            ; a
+     9 00000009 D8C0                            fadd    ST0                     ; 2a
+    10 0000000B DD4508                          fld     qword[EBP+8]            ; a,2a
+    11 0000000E DD4518                          fld     qword[EBP+24]           ; c,a,2a
+    12 00000011 DEC9                            fmulp   ST1                     ; ac,2a
+    13 00000013 D8C0                            fadd    ST0                     ; 2ac,2a
+    14 00000015 D8C0                            fadd    st0                     ; 4ac,2a
+    15 00000017 D9E0                            fchs                            ; -4ac,2a
+    16 00000019 DD4510                          fld     qword[EBP+16]           ; b,-4ac,2a
+    17 0000001C DD4510                          fld     qword[EBP+16]           ; b,b,-4ac,2a
+    18 0000001F DEC9                            fmulp   ST1                     ; b*b,-4ac,2a
+    19 00000021 DEC1                            faddp   ST1                     ; b*b-4ac,2a
+    20 00000023 D9E4                            ftst                            ; cmp (b*b-4ac),0
+    21 00000025 9BDFE0                          fstsw   AX                      ; result of test in AX
+    22 00000028 9E                              sahf                            ; store AH in flag reg
+    23 00000029 7227                            jb      no_real_roots           ; jb tests the carry flag
+    24 0000002B D9FA                            fsqrt                           ; sqrt(b*b-4ac),2a
+    25 0000002D DD4510                          fld     qword[EBP+16]           ; b,sqrt(b*b-4ac),2a
+    26 00000030 D9E0                            fchs                            ; -b,sqrt(b*b-4ac),2a
+    27 00000032 D8C1                            fadd    ST1                     ; -b+sqrt(b*b-4ac),sqrt(b*b-4ac),2a
+    28 00000034 D8F2                            fdiv    ST2                     ; -b+sqrt(b*b-4ac)/2a,sqrt(b*b-4ac),2a
+    29 00000036 8B4520                          mov     EAX,dword[EBP+32]       ; EAX = -b+sqrt(b*b-4ac)/2a
+    30 00000039 DD18                            fstp    qword[EAX]              ; Store and pop
+    31 0000003B D9E0                            fchs                            ; -sqrt(b*b-4ac),2a
+    32 0000003D DD4510                          fld     qword[EBP+16]           ; b,-sqrt(b*b-4ac),2a
+    33 00000040 D9E0                            fchs                            ; -b,-sqrt(b*b-4ac),2a
+    34 00000042 DEC1                            faddp   ST1                     ; -b-sqrt(b*b-4ac),2a
+    35 00000044 DEF1                            fdivrp  ST1                     ; -b-sqrt(b*b-4ac)/2a
+    36 00000046 8B4524                          mov     EAX,dword[EBP+36]       ; EAX = -b-sqrt(b*b-4ac)/2a
+    37 00000049 DD18                            fstp    qword[EAX]              ; Store and pop
+    38 0000004B B801000000                      mov     EAX,1                   ; 1 means real roots
+    39 00000050 EB24                            jmp     short done
+    40                                  no_real_roots:
+    41 00000052 D9E0                            fchs                            ; Make b*b-4ac positive
+    42 00000054 D9FA                            fsqrt                           ; sqrt(b*b-4ac),2a
+    43 00000056 DD4510                          fld     qword[EBP+16]           ; b,sqrt(b*b-4ac),2a
+    44 00000059 D9E0                            fchs                            ; -b,sqrt(b*b-4ac),2a
+    45 0000005B D8C1                            fadd    ST1                     ; -b+sqrt(b*b-4ac),sqrt(b*b-4ac),2a
+    46 0000005D D8F2                            fdiv    ST2                     ; -b+sqrt(b*b-4ac)/2a,sqrt(b*b-4ac),2a
+    47 0000005F 8B4520                          mov     EAX,dword[EBP+32]       ; EAX = -b+sqrt(b*b-4ac)/2a
+    48 00000062 DD18                            fstp    qword[EAX]              ; Store and pop
+    49 00000064 D9E0                            fchs                            ; -sqrt(b*b-4ac),2a
+    50 00000066 DD4510                          fld     qword[EBP+16]           ; b,-sqrt(b*b-4ac),2a
+    51 00000069 D9E0                            fchs                            ; -b,-sqrt(b*b-4ac),2a
+    52 0000006B DEC1                            faddp   ST1                     ; -b-sqrt(b*b-4ac),2a
+    53 0000006D DEF1                            fdivrp  ST1                     ; -b-sqrt(b*b-4ac)/2a
+    54 0000006F 8B4524                          mov     EAX,dword[EBP+36]       ; EAX = -b-sqrt(b*b-4ac)/2a
+    55 00000072 DD18                            fstp    qword[EAX]              ; Store and pop
+    56 00000074 29C0                            sub     EAX,EAX                 ; 0 means no real roots
+    57                                  done:
+    58 00000076 C9                              leave
+    59 00000077 C3                              ret

@@ -1,0 +1,314 @@
+     1                                  extern GetStdHandle
+     2                                  ;import GetStdHandle user32.dll 
+     3                                  extern WriteConsoleA
+     4                                  ;import WriteConsoleA user32.dll
+     5                                  extern ExitProcess
+     6                                  ;import ExitProcess kernel32.dll
+     7                                  extern MessageBoxA
+     8                                  ;import MessageBoxA user32.dll
+     9                                  extern ReadConsoleA
+    10                                  ;import ReadConsoleA user32.dll
+    11                                  
+    12                                  STD_INPUT_HANDLE equ -10
+    13                                  STD_OUTPUT_HANDLE equ -11 
+    14                                  
+    15                                  section .code use32
+    16                                  global _printff
+    17                                  
+    18                                  ;-----------Strlen---------------------------------------------------------;
+    19                                  ;  entry: edi - adress of string										   ;
+    20                                  ;  destr: eax, ecx, edi													   ;
+    21                                  ;  exit: eсx - num of characters before '0', edi - adress of last symbol   ;
+    22                                  ;--------------------------------------------------------------------------;
+    23 00000000 55                      Strlen:		push ebp
+    24 00000001 89E5                    			mov ebp, esp
+    25 00000003 9C                      			pushf
+    26 00000004 FC                      			cld
+    27                                  			
+    28 00000005 B9FFFFFFFF              			mov ecx, -1
+    29 0000000A 30C0                    			xor al,al
+    30 0000000C F2AE                    			repne scasb
+    31 0000000E F7D1                    			not ecx
+    32 00000010 4F                      			dec edi
+    33 00000011 4F                      			dec edi
+    34 00000012 49                      			dec ecx
+    35                                  			
+    36 00000013 9D                      			popf
+    37 00000014 C9                      			leave 
+    38 00000015 C3                      			ret
+    39                                  
+    40                                  ;-----------ItoA-----------------------------------------------------------;
+    41                                  ;  entry: eax - number, edi - adress of string destination,				   ;
+    42                                  ;   ebx = adress of translation table, ecx - base of numeral system( < 36h);
+    43                                  ;  destr: eax, edi, edx													   ;
+    44                                  ;  exit: [esi] - string of ascii codes, edi - pointer to begin of string   ;
+    45                                  ;--------------------------------------------------------------------------;
+    46                                  ItoA32:		
+    47 00000016 FD                      			std
+    48                                  next32:		
+    49 00000017 31D2                    			xor edx, edx
+    50 00000019 F7F1                    			div ecx ; word
+    51 0000001B 92                      			xchg edx, eax
+    52                                  			
+    53 0000001C D7                      			xlat
+    54 0000001D AA                      			stosb
+    55 0000001E 89D0                    			mov eax, edx
+    56                                  
+    57 00000020 84C0                    			test al, al; cmp al, 0
+    58 00000022 75F3                    			jnz next32
+    59 00000024 C3                      			ret
+    60                                  			
+    61                                  ;-----------EasyWrite@2---------------------------------------------------;
+    62                                  ;  entry: 1. num of printing symbols									  ;
+    63                                  ;		  2. adress of begin											  ;
+    64                                  ;  destr: 																  ;
+    65                                  ;  exit: 									 							  ;
+    66                                  ;-------------------------------------------------------------------------;
+    67 00000025 55                      EasyWrite:			push ebp
+    68 00000026 89E5                    					mov ebp, esp
+    69                                  					
+    70 00000028 51                      					push ecx
+    71 00000029 50                      					push eax
+    72                                  
+    73                                  write:		
+    74 0000002A 6AF5                    					push STD_OUTPUT_HANDLE
+    75 0000002C FF15[00000000]          					call [GetStdHandle]
+    76                                  					
+    77 00000032 31C9                    					xor ecx, ecx
+    78 00000034 51                      					push ecx
+    79 00000035 51                      					push ecx
+    80                                  					
+    81 00000036 FF7508                  					push dword [ebp + 8] ; num of symbols		
+    82 00000039 FF750C                  					push dword [ebp + 12]
+    83                                  					
+    84 0000003C 50                      					push eax
+    85 0000003D FF15[00000000]          					call [WriteConsoleA]
+    86                                  					
+    87 00000043 59                      					pop ecx
+    88 00000044 58                      					pop eax
+    89                                  					
+    90 00000045 89EC                    					mov esp, ebp
+    91 00000047 5D                      					pop ebp
+    92 00000048 C3                      					ret
+    93                                  
+    94                                  ;-----------printf----------------------------------------------------;
+    95                                  ;  entry:  edi - adress of string; Any number of parametres in stack  ;
+    96                                  ;								  									  ;
+    97                                  ;  destr: eax, ebx, ecx, bl, edx, esi										  ;
+    98                                  ;  exit: eax - number												  ;
+    99                                  ;---------------------------------------------------------------------;
+   100 00000049 55                      _printff:			push ebp
+   101 0000004A 89E5                    					mov ebp, esp
+   102                                  					;STR_LENw0 equ [ebp - 4]
+   103 0000004C 83EC08                  					sub esp, 8;optim
+   104                                  					
+   105 0000004F 89FE                    					 mov esi, edi; esi - pointer to begin of string
+   106 00000051 B9FFFFFFFF              					 mov ecx, -1
+   107 00000056 FC                      					 cld
+   108 00000057 B000                    					 mov al, 0
+   109 00000059 F2AE                    					 repne scasb
+   110                                  					 ;cmp edi,0  jmp error 
+   111 0000005B F7D1                    					 not ecx; lenght of string
+   112 0000005D 49                      					 dec ecx; without '0'
+   113 0000005E 894DFC                  					 mov [ebp - 4], ecx; save it for later
+   114 00000061 4F                      					 dec edi; edi - pointer to last "real" symblol
+   115                                  					 
+   116 00000062 FD                      					 std
+   117 00000063 B025                    					 mov al, '%'
+   118 00000065 F2AE                    					 repne scasb ; check is there any '%' 
+   119 00000067 7572                    					 jne WriteText ; if not use simple print
+   120                                  					 
+   121 00000069 8B4DFC                  					 mov ecx, [ebp - 4]
+   122                                  					 
+   123 0000006C FC                      					 cld
+   124 0000006D BA01000000              					 mov edx, 1;edx - num of blocks
+   125 00000072 89F7                    					 mov edi, esi
+   126 00000074 89CB                    					 mov ebx, ecx
+   127 00000076 F2AE                    					 repne scasb 
+   128                                  BuildMAP:			 ;;;;;;;;;;;;;;;;
+   129 00000078 29CB                    					 sub ebx, ecx; num of symbols in block
+   130 0000007A 4B                      					 dec ebx
+   131 0000007B 53                      					 push ebx
+   132                                  					 ;inc edi; to get letter after '%'
+   133                                  					 
+   134                                  					 ;xor ebx, ebx
+   135                                  					 ;mov bl, [edi]; !!!!!!!!!!!
+   136                                  					 ;push ebx; optim
+   137 0000007C 47                      					 inc edi; to skip format letter
+   138 0000007D 49                      					 dec ecx; to skip format letter
+   139                                  					 
+   140 0000007E 89CB                    					 mov ebx, ecx
+   141 00000080 F2AE                    					 repne scasb 
+   142                                  					 
+   143 00000082 42                      					 inc edx; edx - num of blocks
+   144 00000083 85C9                    					 test ecx, ecx
+   145 00000085 75F1                    					 jne BuildMAP
+   146                                  					 ;;;;;;;;;;;;;;;;
+   147 00000087 29CB                    					 sub ebx, ecx; num of symbols in block
+   148 00000089 53                      					 push ebx
+   149                                  					 
+   150 0000008A FD                      					 std
+   151 0000008B 31C0                    					 xor eax, eax; ah - symbol
+   152 0000008D 0375FC                  					 add esi, [ebp - 4]; esi - end of string
+   153 00000090 4E                      					 dec esi; one extra
+   154 00000091 89E7                    					 mov edi, esp 
+   155 00000093 83EF18                  					 sub edi, 24; edi - end of output
+   156 00000096 897DF8                  					 mov [ebp - 8], edi
+   157 00000099 8D5D08                  					 lea ebx, [ebp + 8];ebx - contains parametres
+   158 0000009C 59                      CreatOutputString:	 pop ecx
+   159 0000009D F3A4                    					 rep movsb 
+   160 0000009F 8A06                    					 mov al, [esi]
+   161 000000A1 3C64                    					 cmp al, 'd'
+   162 000000A3 0F84C0000000            					 je ItoD
+   163                                  					 
+   164 000000A9 3C6F                    					 cmp al, 'o'
+   165 000000AB 7440                    					 je ItoO
+   166                                  					 
+   167 000000AD 3C78                    					 cmp al, 'x'
+   168 000000AF 743C                    					 je ItoO
+   169                                  					 
+   170 000000B1 3C62                    					 cmp al, 'b'
+   171 000000B3 745D                    					 je ItoB
+   172                                  					 
+   173 000000B5 3C63                    					 cmp al, 'c'
+   174 000000B7 742D                    					 je ItoC
+   175                                  					 
+   176 000000B9 3C73                    					 cmp al, 's'
+   177 000000BB 0F84C2000000            					 je ItoS
+   178                                  					 
+   179 000000C1 83C304                  SwitchEnd:			 add ebx, 4; next parameter
+   180 000000C4 4E                      					 dec esi
+   181 000000C5 4E                      					 dec esi
+   182                                  					 
+   183 000000C6 4A                      					 dec edx
+   184 000000C7 75D3                    					 jnz CreatOutputString
+   185                                  					 
+   186 000000C9 47                      					 inc edi; one extra 
+   187 000000CA 8B75F8                  					 mov esi, [ebp - 8]
+   188 000000CD 29FE                    					 sub esi, edi
+   189 000000CF 46                      					 inc esi
+   190 000000D0 89FC                    					 mov esp, edi
+   191                                  					 
+   192 000000D2 57                      WriteF:		         push edi
+   193 000000D3 56                      					 push esi
+   194 000000D4 E84CFFFFFF              					 call EasyWrite
+   195 000000D9 C9                      					 leave
+   196 000000DA C3                      					 ret
+   197                                  WriteText: 			 
+   198 000000DB 56                      					 push esi
+   199 000000DC FF75FC                  					 push dword [ebp - 4]
+   200 000000DF E841FFFFFF              					 call EasyWrite
+   201 000000E4 C9                      					 leave 
+   202 000000E5 C3                      					 ret
+   203                                  					 
+   204 000000E6 8B03                    ItoC:				 mov eax, [ebx]
+   205 000000E8 8807                    					 mov [edi], al
+   206 000000EA 4F                      					 dec edi
+   207 000000EB EBD4                    					 jmp SwitchEnd
+   208                                  
+   209 000000ED 8B03                    ItoO:				 mov eax, [ebx]
+   210 000000EF C1E005                  ItoOnext:			 shl eax, 5
+   211 000000F2 C0E805                  					 shr al, 5
+   212 000000F5 0430                    					 add al, '0'
+   213 000000F7 8807                    					 mov [edi], al
+   214 000000F9 4F                      					 dec edi
+   215 000000FA C1E808                  					 shr eax, 8
+   216 000000FD 84C0                    					 test al, al
+   217 000000FF 75EE                    					 jne ItoOnext
+   218 00000101 8A4303                  					 mov al, [ebx + 3]
+   219 00000104 84C0                    					 test al, al
+   220 00000106 74B9                    					 je SwitchEnd
+   221 00000108 C0E805                  					 shr al, 5
+   222 0000010B 0430                    					 add al, '0'
+   223 0000010D 8807                    					 mov [edi], al
+   224 0000010F 4F                      					 dec edi
+   225 00000110 EBAF                    					 jmp SwitchEnd
+   226                                  					 
+   227 00000112 8B03                    ItoB:				 mov eax, [ebx]
+   228 00000114 C1E007                  ItoBnext:			 shl eax, 7
+   229 00000117 C0E807                  					 shr al, 7
+   230 0000011A 0430                    					 add al, '0'
+   231 0000011C 8807                    					 mov [edi], al
+   232 0000011E 4F                      					 dec edi
+   233 0000011F C1E808                  					 shr eax, 8
+   234 00000122 84C0                    					 test al, al
+   235 00000124 75EE                    					 jne ItoBnext
+   236 00000126 8A4303                  					 mov al, [ebx + 3]
+   237 00000129 84C0                    					 test al, al
+   238 0000012B 7494                    					 je SwitchEnd
+   239 0000012D C0E807                  					 shr al, 7
+   240 00000130 0430                    					 add al, '0'
+   241 00000132 8807                    					 mov [edi], al
+   242 00000134 4F                      					 dec edi
+   243 00000135 EB8A                    					 jmp SwitchEnd
+   244                                  
+   245 00000137 8B03                    ItoX:				 mov eax, [ebx]
+   246 00000139 C1E004                  ItoXnext:			 shl eax, 4
+   247 0000013C C0E804                  					 shr al, 4
+   248 0000013F 3C0A                    					 cmp al,  10d
+   249 00000141 1C69                    					 sbb al, 69h
+   250 00000143 2F                      					 das
+   251 00000144 8807                    					 mov [edi], al
+   252 00000146 4F                      					 dec edi
+   253 00000147 C1E808                  					 shr eax, 8
+   254 0000014A 84C0                    					 test al, al
+   255 0000014C 75EB                    					 jne ItoXnext
+   256 0000014E 8A4303                  					 mov al, [ebx + 3]
+   257 00000151 84C0                    					 test al, al
+   258 00000153 0F8468FFFFFF            					 je SwitchEnd
+   259 00000159 C0E804                  					 shr al, 4
+   260 0000015C 3C0A                    					 cmp al, 10d
+   261 0000015E 1C69                    					 sbb al, 69h
+   262 00000160 2F                      					 das
+   263 00000161 8807                    					 mov [edi], al
+   264 00000163 4F                      					 dec edi
+   265                                  					 
+   266 00000164 E958FFFFFF              					 jmp SwitchEnd
+   267                                  					 
+   268                                  ItoD:				 
+   269 00000169 8B03                    					 mov eax, [ebx]
+   270 0000016B 52                      					 push edx
+   271 0000016C 53                      					 push ebx
+   272                                  					 
+   273 0000016D B90A000000              					 mov ecx, 10d
+   274 00000172 BB[00000000]            					 mov ebx, HexStr
+   275 00000177 E89AFEFFFF              					 call ItoA32
+   276                                  					 
+   277 0000017C 5B                      					 pop ebx
+   278 0000017D 5A                      					 pop edx
+   279 0000017E E93EFFFFFF              					 jmp SwitchEnd
+   280                                  					 
+   281                                  					 
+   282 00000183 51                      ItoS:				 push ecx
+   283 00000184 56                      					 push esi
+   284 00000185 57                      					 push edi
+   285                                  					 
+   286 00000186 8B3B                    					 mov edi, [ebx]
+   287 00000188 E873FEFFFF              					 call Strlen
+   288 0000018D 89FE                    					 mov esi, edi
+   289 0000018F 5F                      					 pop edi
+   290 00000190 F3A4                    					 rep movsb
+   291                                  					 
+   292 00000192 5E                      					 pop esi
+   293 00000193 59                      					 pop ecx 
+   294 00000194 E928FFFFFF              					 jmp SwitchEnd
+   295                                  					 
+   296                                  ;start:
+   297                                  ;					 push 123d
+   298                                  ;					 push 1234d
+   299                                  ;					 push HexStr
+   300                                  ;					 push 65530
+   301                                  ;					 mov edi, String
+   302                                  ;					 call printff
+   303                                  ;					 cld
+   304                                  ;					
+   305                                  ;exit:				 push 0
+   306                                  ;					 call[ExitProcess]
+   307                                  					
+   308                                  section .data use32
+   309 00000000 303132333435363738-     					HexStr db '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', 0
+   309 00000009 394142434445464748-
+   309 00000012 494A4B4C4D4E4F5051-
+   309 0000001B 52535455565758595A-
+   309 00000024 00                 
+   310                                  ;					String db '----%c---%o-%s----%b-----', 0

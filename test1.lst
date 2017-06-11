@@ -1,0 +1,32 @@
+     1                                  ;=================================================
+     2                                  ; 0-Nasm+Alink.asm                     (c)Ded,2012
+     3                                  ;=================================================
+     4                                  
+     5                                  ; nasm    "0-Nasm+Alink.asm" -f obj -l "0-Nasm+Alink.lst"
+     6                                  ; alink   "0-Nasm+Alink.obj" -oPE -c -subsys console
+     7                                  ; ndisasm "0-Nasm+Alink.exe" -b 32 -e 512 > "0-Nasm+Alink.disasm"
+     8                                  
+     9                                  ; Hardcoded addrs are valid for Microsoft Windows [Version 10.0.10240] ONLY!
+    10                                  ; Run "0-Nasm+Alink.in.bat" to get .asm file for exactly your version.
+    11                                  
+    12                                  section .code use32
+    13                                  
+    14 00000000 6AF5                    start:        push -11                  ; STD_OUTPUT_HANDLE = -11
+    15 00000002 B860A07476                              mov eax, 07674a060h       ; GetStdHandle
+    16 00000007 FFD0                                    call eax                  ; eax = stdout = GetStdHandle (STD_OUTPUT_HANDLE = -11)
+    17                                  
+    18 00000009 31D2                                    xor edx, edx
+    19 0000000B 52                                      push edx                  ; Resvd = 0
+    20 0000000C 52                                      push edx                  ; Ptr to number of chars written = NULL
+    21 0000000D 6A05                                    push 5                    ; sizeof ("Text\n")
+    22 0000000F 68[22000000]                            push dword MsgText
+    23 00000014 50                                      push eax                  ; stdout = GetStdHandle (STD_OUTPUT_HANDLE) 
+    24 00000015 B810697576                              mov eax, 076756910h       ; WriteConsoleA
+    25 0000001A FFD0                                    call eax                  ; WriteConsoleA (stdout, MsgText, 5, NULL, 0)
+    26                                  
+    27 0000001C 68F0747576                              push 0767574f0h           ; ExitProcess
+    28 00000021 C3                                      ret                       ; he-he
+    29                                  
+    30 00000022 546578740A              MsgText         db "Text", 0ah
+    31                                  
+    32                                   

@@ -1,0 +1,60 @@
+Turbo Assembler	 Version 4.1	    02/18/16 18:36:21	    Page 1
+test2.asm
+
+
+
+      1				     ;ã===================================¬
+      2				     ;¦Printing	"Platy$pus$"		  ¦
+      3				     ;L===================================¦
+      4	0000			      .model tiny			; ¦
+      5	0000			      .code				; ¦
+      6				      .286				; ¦
+      7				     ;====================================¦
+      8				     org 100h				; ¦
+      9				     ;====================================¦
+     10	0100			      start:				; ¦
+     11	0100  B4 09			     mov ah, 9h	;!		; ¦
+     12	0102  BA 0000r			     mov dx, offset msg		; ¦
+     13	0105  CD 21			     int 21h			; ¦
+     14									; ¦
+     15	0107  B8 04C0			     mov ax, 4c0h ;!		; ¦
+     16	010A  CD 21			     int 21h			; ¦
+     17									; ¦
+     18	010C			      .data				; ¦
+     19	0000  09 20 50 6C 61 74	79+   msg     db 9, ' Platy$pus$'	; ¦
+     20	      24 70 75 73 24
+     21				     ;====================================¦
+     22				      end start				; ¦
+Turbo Assembler	 Version 4.1	    02/18/16 18:36:21	    Page 2
+Symbol Table
+
+
+
+
+Symbol Name			  Type	 Value
+
+??DATE				  Text	 "02/18/16"
+??FILENAME			  Text	 "test2	  "
+??TIME				  Text	 "18:36:21"
+??VERSION			  Number 040A
+@32BIT				  Text	 0
+@CODE				  Text	 DGROUP
+@CODESIZE			  Text	 0
+@CPU				  Text	 0707H
+@CURSEG				  Text	 _DATA
+@DATA				  Text	 DGROUP
+@DATASIZE			  Text	 0
+@FILENAME			  Text	 TEST2
+@INTERFACE			  Text	 000H
+@MODEL				  Text	 1
+@STACK				  Text	 DGROUP
+@WORDSIZE			  Text	 2
+MSG				  Byte	 DGROUP:0000
+START				  Near	 DGROUP:0100
+
+Groups & Segments		  Bit Size Align  Combine Class
+
+DGROUP				  Group
+  _DATA				  16  000C Word	  Public  DATA
+  _TEXT				  16  010C Word	  Public  CODE
+
